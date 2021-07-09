@@ -117,11 +117,12 @@ func GetTagSummary(app *application.Application) httprouter.Handle {
 				)
 				AND article_date = ($2)
 			)
+		AND tag <> $3
 		)
 		`
-		var relatedTags = make(map[string]struct{})
+		var relatedTags []string
 		var relatedTag string
-		rows, err = app.DB.DBClient.Query(context.Background(), stmt, &articleIDs, parsedDate)
+		rows, err = app.DB.DBClient.Query(context.Background(), stmt, &articleIDs, parsedDate, tag)
 		if err != nil {
 			fmt.Println("Error at last query", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -134,13 +135,10 @@ func GetTagSummary(app *application.Application) httprouter.Handle {
 				fmt.Println("Got error", err)
 				continue
 			}
-			relatedTags[relatedTag] = struct{}{}
+			relatedTags = append(relatedTags, relatedTag)
 		}
-		delete(relatedTags, tag)
 
-		for k := range relatedTags {
-			resp.RelatedTags = append(resp.RelatedTags, k)
-		}
+		resp.RelatedTags = relatedTags
 
 		w.Header().Set("Content-Type", "application/json")
 		response, _ := json.Marshal(resp)
