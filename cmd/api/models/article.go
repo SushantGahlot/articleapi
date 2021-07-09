@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -38,9 +39,15 @@ func (ar *Article) Insert(app *application.Application, ctx context.Context) err
 		ar.ArticleBody,
 	)
 
-	if err != nil || commandTag.RowsAffected() != 1 {
+	if err != nil {
 		return err
 	}
+
+	if commandTag.RowsAffected() == 0 {
+		return errors.New("could not save article")
+	}
+
+	ar.ArticleDate = today
 
 	return nil
 }

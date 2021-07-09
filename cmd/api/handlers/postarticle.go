@@ -84,6 +84,8 @@ func PostArticle(app *application.Application) httprouter.Handle {
 			return
 		}
 
+		article.Tags = validatedTags
+
 		w.Header().Set("Content-Type", "application/json")
 		response, _ := json.Marshal(article)
 		w.Write(response)
