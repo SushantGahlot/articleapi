@@ -120,7 +120,7 @@ func GetTagSummary(app *application.Application) httprouter.Handle {
 		AND tag <> $3
 		)
 		`
-		var relatedTags []string
+
 		var relatedTag string
 		rows, err = app.DB.DBClient.Query(context.Background(), stmt, &articleIDs, parsedDate, tag)
 		if err != nil {
@@ -135,10 +135,8 @@ func GetTagSummary(app *application.Application) httprouter.Handle {
 				fmt.Println("Got error", err)
 				continue
 			}
-			relatedTags = append(relatedTags, relatedTag)
+			resp.RelatedTags = append(resp.RelatedTags, relatedTag)
 		}
-
-		resp.RelatedTags = relatedTags
 
 		w.Header().Set("Content-Type", "application/json")
 		response, _ := json.Marshal(resp)
