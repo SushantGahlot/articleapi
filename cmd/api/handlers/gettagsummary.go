@@ -105,24 +105,32 @@ func GetTagSummary(app *application.Application) httprouter.Handle {
 		}
 
 		// Get related tags
+		// stmt = `
+		// SELECT tag FROM tags WHERE tag_id = ANY (
+		// 	SELECT tag_id FROM article_tag WHERE article_id = ANY (
+		// 		SELECT article_id
+		// 		FROM article
+		// 		WHERE article_id = ANY (
+		// 			SELECT article_id
+		// 			FROM article_tag
+		// 			WHERE tag_id = ANY (SELECT tag_id FROM article_tag WHERE article_id = ANY ($1))
+		// 		)
+		// 		AND article_date = ($2)
+		// 	)
+		// AND tag <> $3
+		// )
+		// `
 		stmt = `
-		SELECT tag FROM tags WHERE tag_id = ANY (
-			SELECT tag_id FROM article_tag WHERE article_id = ANY (
-				SELECT article_id 
-				FROM article
-				WHERE article_id = ANY (
-					SELECT article_id
-					FROM article_tag
-					WHERE tag_id = ANY (SELECT tag_id FROM article_tag WHERE article_id = ANY ($1))
-				)
-				AND article_date = ($2)
-			)
-		AND tag <> $3
-		)
+		SELECT DISTINCT tag
+		FROM tags t
+		INNER JOIN article_tag at
+		ON at.tag_id = t.tag_id
+		WHERE at.article_id = ANY ($1)
+		AND t.tag <> ($2)
 		`
 
 		var relatedTag string
-		rows, err = app.DB.DBClient.Query(context.Background(), stmt, &articleIDs, parsedDate, tag)
+		rows, err = app.DB.DBClient.Query(context.Background(), stmt, &articleIDs, tag)
 		if err != nil {
 			fmt.Println("Error at last query", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
